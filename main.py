@@ -18,9 +18,7 @@ parser.add_argument('--steps', type=int, default=50000, metavar='N',
                     help='maximum number of iterations '
                          'to train (default: 50000)')
 parser.add_argument('--method', type=str, default='MME',
-                    choices=['S+T', 'ENT', 'MME'],
-                    help='MME is proposed method, ENT is entropy minimization,'
-                         ' S+T is training only on labeled examples')
+                    choices=['source_only', 'source_target', 'ldada'])
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.001)')
 parser.add_argument('--multi', type=float, default=0.1, metavar='MLT',
@@ -60,7 +58,7 @@ parser.add_argument('--early', action='store_false', default=True,
 args = parser.parse_args()
 print('Dataset %s Source %s Target %s Labeled num perclass %s Network %s' %
       (args.dataset, args.source, args.target, args.num, args.net))
-source_loader, target_loader, target_loader_unl, target_loader_val, \
+source_loader, _, target_loader_unl, target_loader_val, \
     target_loader_test, class_list = return_dataset(args)
 use_gpu = torch.cuda.is_available()
 record_dir = 'record/%s/%s' % (args.dataset, args.method)
@@ -153,10 +151,8 @@ def train():
     criterion = nn.CrossEntropyLoss().cuda()
     all_step = args.steps
     data_iter_s = iter(source_loader)
-    data_iter_t = iter(target_loader)
     data_iter_t_unl = iter(target_loader_unl)
     len_train_source = len(source_loader)
-    len_train_target = len(target_loader)
     len_train_target_semi = len(target_loader_unl)
     best_acc = 0
     counter = 0
@@ -166,55 +162,60 @@ def train():
         optimizer_f = inv_lr_scheduler(param_lr_f, optimizer_f, step,
                                        init_lr=args.lr)
         lr = optimizer_f.param_groups[0]['lr']
-        if step % len_train_target == 0:
-            data_iter_t = iter(target_loader)
         if step % len_train_target_semi == 0:
             data_iter_t_unl = iter(target_loader_unl)
         if step % len_train_source == 0:
             data_iter_s = iter(source_loader)
-        data_t = next(data_iter_t)
         data_t_unl = next(data_iter_t_unl)
         data_s = next(data_iter_s)
         im_data_s.data.resize_(data_s[0].size()).copy_(data_s[0])
         gt_labels_s.data.resize_(data_s[1].size()).copy_(data_s[1])
-        im_data_t.data.resize_(data_t[0].size()).copy_(data_t[0])
-        gt_labels_t.data.resize_(data_t[1].size()).copy_(data_t[1])
         im_data_tu.data.resize_(data_t_unl[0].size()).copy_(data_t_unl[0])
-        zero_grad_all()
-        data = torch.cat((im_data_s, im_data_t), 0)
-        target = torch.cat((gt_labels_s, gt_labels_t), 0)
-        output = G(data)
-        out1 = F1(output)
-        loss = criterion(out1, target)
-        loss.backward(retain_graph=True)
-        optimizer_g.step()
-        optimizer_f.step()
-        zero_grad_all()
-        if not args.method == 'S+T':
-            output = G(im_data_tu)
-            if args.method == 'ENT':
-                loss_t = entropy(F1, output, args.lamda)
-                loss_t.backward()
-                optimizer_f.step()
-                optimizer_g.step()
-            elif args.method == 'MME':
-                loss_t = adentropy(F1, output, args.lamda)
-                loss_t.backward()
-                optimizer_f.step()
-                optimizer_g.step()
-            else:
-                raise ValueError('Method cannot be recognized.')
-            log_train = 'S {} T {} Train Ep: {} lr{} \t ' \
-                        'Loss Classification: {:.6f} Loss T {:.6f} ' \
-                        'Method {}\n'.format(args.source, args.target,
-                                             step, lr, loss.data,
-                                             -loss_t.data, args.method)
-        else:
+        if args.method == 'source_only':
+            zero_grad_all()
+            data = im_data_s
+            target = gt_labels_s
+            output = G(data)
+            out1 = F1(output)
+            loss = criterion(out1, target)
+            loss.backward()
+            optimizer_g.step()
+            optimizer_f.step()
             log_train = 'S {} T {} Train Ep: {} lr{} \t ' \
                         'Loss Classification: {:.6f} Method {}\n'.\
                 format(args.source, args.target,
                        step, lr, loss.data,
                        args.method)
+        elif args.method == 'source_target':
+            raise ValueError('Method cannot be recognized.')
+        elif args.method == 'ldada':
+            raise ValueError('Method cannot be recognized.')
+
+        # if not args.method == 'S+T':
+        #     output = G(im_data_tu)
+        #     if args.method == 'ENT':
+        #         loss_t = entropy(F1, output, args.lamda)
+        #         loss_t.backward()
+        #         optimizer_f.step()
+        #         optimizer_g.step()
+        #     elif args.method == 'MME':
+        #         loss_t = adentropy(F1, output, args.lamda)
+        #         loss_t.backward()
+        #         optimizer_f.step()
+        #         optimizer_g.step()
+        #     else:
+        #         raise ValueError('Method cannot be recognized.')
+        #     log_train = 'S {} T {} Train Ep: {} lr{} \t ' \
+        #                 'Loss Classification: {:.6f} Loss T {:.6f} ' \
+        #                 'Method {}\n'.format(args.source, args.target,
+        #                                      step, lr, loss.data,
+        #                                      -loss_t.data, args.method)
+        # else:
+        #     log_train = 'S {} T {} Train Ep: {} lr{} \t ' \
+        #                 'Loss Classification: {:.6f} Method {}\n'.\
+        #         format(args.source, args.target,
+        #                step, lr, loss.data,
+        #                args.method)
         G.zero_grad()
         F1.zero_grad()
         zero_grad_all()
