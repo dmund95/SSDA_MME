@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import msda
 from torch.autograd import Variable
 from model.resnet import resnet34
 from model.basenet import AlexNetBase, VGGBase, Predictor, Predictor_deep
@@ -23,6 +24,8 @@ parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.001)')
 parser.add_argument('--multi', type=float, default=0.1, metavar='MLT',
                     help='learning rate multiplication')
+parser.add_argument('--msda_wt', type=float, default=0.01,
+                    help='weightage for alignment loss')
 parser.add_argument('--T', type=float, default=0.05, metavar='T',
                     help='temperature (default: 0.05)')
 parser.add_argument('--lamda', type=float, default=0.1, metavar='LAM',
@@ -168,8 +171,8 @@ def train():
         im_data_s.data.resize_(data_s[0].size()).copy_(data_s[0])
         gt_labels_s.data.resize_(data_s[1].size()).copy_(data_s[1])
         im_data_t.data.resize_(data_t[0].size()).copy_(data_t[0])
+        zero_grad_all()
         if args.method == 'source_only':
-            zero_grad_all()
             data = im_data_s
             target = gt_labels_s
             output = G(data)
@@ -184,7 +187,23 @@ def train():
                        step, lr, loss.data,
                        args.method)
         elif args.method == 'source_target':
-            raise ValueError('Method cannot be recognized.')
+            source_features = G(im_data_s)
+            target_features = G(im_data_t)
+            target = gt_labels_s
+            da_loss = msda.msda_regulizer_single(source_features, target_features, 5)
+            da_loss = da_loss * args.msda_wt
+
+            out_predictions = F1(source_features)
+            ce_loss = criterion(out_predictions, target)
+            loss = ce_loss + da_loss
+            loss.backward()
+            optimizer_g.step()
+            optimizer_f.step()
+            log_train = 'Target {} Train Ep: {} lr{} \t ' \
+                        'Loss Classification: {:.6f} Method {}\n'.\
+                format(args.target,
+                       step, lr, loss.data,
+                       args.method)
         elif args.method == 'ldada':
             raise ValueError('Method cannot be recognized.')
 
