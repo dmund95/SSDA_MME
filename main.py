@@ -63,9 +63,8 @@ record_dir = 'record/%s/%s' % (args.dataset, args.method)
 if not os.path.exists(record_dir):
     os.makedirs(record_dir)
 record_file = os.path.join(record_dir,
-                           '%s_net_%s_%s_to_%s_num_%s' %
-                           (args.method, args.net, args.source,
-                            args.target, args.num))
+                           '%s_net_%s_target_%s_num_%s' %
+                           (args.method, args.net, args.target, args.num))
 
 torch.cuda.manual_seed(args.seed)
 if args.net == 'resnet34':
@@ -179,9 +178,9 @@ def train():
             loss.backward()
             optimizer_g.step()
             optimizer_f.step()
-            log_train = 'S {} T {} Train Ep: {} lr{} \t ' \
+            log_train = 'Target {} Train Ep: {} lr{} \t ' \
                         'Loss Classification: {:.6f} Method {}\n'.\
-                format(args.source, args.target,
+                format(args.target,
                        step, lr, loss.data,
                        args.method)
         elif args.method == 'source_target':

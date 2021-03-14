@@ -27,7 +27,7 @@ def return_dataset(args):
     source_domains = [domain_map[args.target[i]] for i in range(len(args.target)-1)]
 
     for sd in source_domains:
-        image_set_file_s += os.path.join(base_path,sd+'_train.txt')
+        image_set_file_s.append(os.path.join(base_path,sd+'_train.txt'))
     
     image_set_file_t = [os.path.join(base_path,target_domain+'_train.txt')]
 
