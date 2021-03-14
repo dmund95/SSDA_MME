@@ -40,10 +40,8 @@ parser.add_argument('--save_interval', type=int, default=500, metavar='N',
                     help='how many batches to wait before saving a model')
 parser.add_argument('--net', type=str, default='alexnet',
                     help='which network to use')
-parser.add_argument('--source', type=str, default='real',
-                    help='source domain')
-parser.add_argument('--target', type=str, default='sketch',
-                    help='target domain')
+parser.add_argument('--target', type=str, default='ipqrsc',
+                    help='last domain is the target domain')
 parser.add_argument('--dataset', type=str, default='multi',
                     choices=['multi', 'office', 'office_home'],
                     help='the name of dataset')
@@ -56,9 +54,9 @@ parser.add_argument('--early', action='store_false', default=True,
                     help='early stopping on validation or not')
 
 args = parser.parse_args()
-print('Dataset %s Source %s Target %s Labeled num perclass %s Network %s' %
-      (args.dataset, args.source, args.target, args.num, args.net))
-source_loader, _, target_loader_unl, target_loader_val, \
+print('Dataset %s Target %s Labeled num perclass %s Network %s' %
+      (args.dataset, args.target, args.num, args.net))
+source_loader, target_loader, target_loader_val, \
     target_loader_test, class_list = return_dataset(args)
 use_gpu = torch.cuda.is_available()
 record_dir = 'record/%s/%s' % (args.dataset, args.method)
@@ -151,9 +149,9 @@ def train():
     criterion = nn.CrossEntropyLoss().cuda()
     all_step = args.steps
     data_iter_s = iter(source_loader)
-    data_iter_t_unl = iter(target_loader_unl)
+    data_iter_t = iter(target_loader)
     len_train_source = len(source_loader)
-    len_train_target_semi = len(target_loader_unl)
+    len_train_target = len(target_loader)
     best_acc = 0
     counter = 0
     for step in range(all_step):
@@ -162,15 +160,15 @@ def train():
         optimizer_f = inv_lr_scheduler(param_lr_f, optimizer_f, step,
                                        init_lr=args.lr)
         lr = optimizer_f.param_groups[0]['lr']
-        if step % len_train_target_semi == 0:
-            data_iter_t_unl = iter(target_loader_unl)
+        if step % len_train_target == 0:
+            data_iter_t = iter(target_loader)
         if step % len_train_source == 0:
             data_iter_s = iter(source_loader)
-        data_t_unl = next(data_iter_t_unl)
+        data_t = next(data_iter_t)
         data_s = next(data_iter_s)
         im_data_s.data.resize_(data_s[0].size()).copy_(data_s[0])
         gt_labels_s.data.resize_(data_s[1].size()).copy_(data_s[1])
-        im_data_tu.data.resize_(data_t_unl[0].size()).copy_(data_t_unl[0])
+        im_data_t.data.resize_(data_t[0].size()).copy_(data_t[0])
         if args.method == 'source_only':
             zero_grad_all()
             data = im_data_s

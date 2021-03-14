@@ -17,25 +17,22 @@ class ResizeImage():
 
 
 def return_dataset(args):
-    base_path = './data/txt/%s' % args.dataset
-    root = 'tkadapt/dataset/visDA/'
-    # root = './data/%s/' % args.dataset
-    image_set_file_s = \
-        os.path.join(base_path,
-                     'labeled_source_images_' +
-                     args.source + '.txt')
-    image_set_file_t = \
-        os.path.join(base_path,
-                     'labeled_target_images_' +
-                     args.target + '_%d.txt' % (args.num))
-    image_set_file_t_val = \
-        os.path.join(base_path,
-                     'validation_target_images_' +
-                     args.target + '_3.txt')
-    image_set_file_unl = \
-        os.path.join(base_path,
-                     'unlabeled_target_images_' +
-                     args.target + '_%d.txt' % (args.num))
+    base_path = '/vulcan-pvc1/data/domain_net/'
+
+    domain_map = {'i':'infograph', 'p':'painting', 'q':'quickdraw', 'r':'real', 's':'sketch', 'c':'clipart'}
+
+    image_set_file_s = []
+
+    target_domain = domain_map[args.target[-1]]
+    source_domains = [domain_map[args.target[i]] for i in range(len(args.target)-1)]
+
+    for sd in source_domains:
+        image_set_file_s += os.path.join(base_path,sd+'_train.txt')
+    
+    image_set_file_t = [os.path.join(base_path,target_domain+'_train.txt')]
+
+    image_set_file_t_val = [os.path.join(base_path,target_domain+'_test.txt')]
+    image_set_file_unl = [os.path.join(base_path,target_domain+'_test.txt')]
 
     if args.net == 'alexnet':
         crop_size = 227
@@ -63,17 +60,12 @@ def return_dataset(args):
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
     }
-    source_dataset = Imagelists_VISDA(image_set_file_s, root=root,
-                                      transform=data_transforms['train'])
-    target_dataset = Imagelists_VISDA(image_set_file_t, root=root,
-                                      transform=data_transforms['val'])
-    target_dataset_val = Imagelists_VISDA(image_set_file_t_val, root=root,
-                                          transform=data_transforms['val'])
-    target_dataset_unl = Imagelists_VISDA(image_set_file_unl, root=root,
-                                          transform=data_transforms['val'])
-    target_dataset_test = Imagelists_VISDA(image_set_file_unl, root=root,
-                                           transform=data_transforms['test'])
-    class_list = return_classlist(image_set_file_s)
+    source_dataset = Imagelists_VISDA(image_set_file_s, transform=data_transforms['train'])
+    target_dataset = Imagelists_VISDA(image_set_file_t, transform=data_transforms['val'])
+    target_dataset_val = Imagelists_VISDA(image_set_file_t_val, transform=data_transforms['val'])
+    target_dataset_test = Imagelists_VISDA(image_set_file_unl, transform=data_transforms['test'])
+
+    class_list = return_classlist(image_set_file_s[0])
     print("%d classes in this dataset" % len(class_list))
     if args.net == 'alexnet':
         bs = 32
@@ -93,15 +85,11 @@ def return_dataset(args):
                                                    len(target_dataset_val)),
                                     num_workers=3,
                                     shuffle=True, drop_last=True)
-    target_loader_unl = \
-        torch.utils.data.DataLoader(target_dataset_unl,
-                                    batch_size=bs * 2, num_workers=3,
-                                    shuffle=True, drop_last=True)
     target_loader_test = \
         torch.utils.data.DataLoader(target_dataset_test,
                                     batch_size=bs * 2, num_workers=3,
                                     shuffle=True, drop_last=True)
-    return source_loader, target_loader, target_loader_unl, \
+    return source_loader, target_loader, \
         target_loader_val, target_loader_test, class_list
 
 

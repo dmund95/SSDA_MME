@@ -10,20 +10,36 @@ def pil_loader(path):
         return img.convert('RGB')
 
 
-def make_dataset_fromlist(image_list):
-    with open(image_list) as f:
-        image_index = [x.split(' ')[0] for x in f.readlines()]
-    with open(image_list) as f:
-        label_list = []
-        selected_list = []
-        for ind, x in enumerate(f.readlines()):
-            label = x.split(' ')[1].strip()
-            label_list.append(int(label))
-            selected_list.append(ind)
-        image_index = np.array(image_index)
-        label_list = np.array(label_list)
-    image_index = image_index[selected_list]
-    return image_index, label_list
+def make_dataset_fromlist(image_lists):
+    images = []
+    labels = []
+    for image_list in image_lists:
+        with open(image_list) as f:
+            label_list = []
+            image_index = []
+            for ind, x in enumerate(f.readlines()):
+                img_path = x.split(' ')[0]
+                label = x.split(' ')[1].strip()
+                label_list.append(int(label))
+                image_index.append(img_path)
+            images.extend(image_index)
+            labels.extend(label_list)
+    images = np.array(images)
+    labels = np.array(labels)
+    return images, labels
+    # with open(image_list) as f:
+    #     image_index = [x.split(' ')[0] for x in f.readlines()]
+    # with open(image_list) as f:
+    #     label_list = []
+    #     selected_list = []
+    #     for ind, x in enumerate(f.readlines()):
+    #         label = x.split(' ')[1].strip()
+    #         label_list.append(int(label))
+    #         selected_list.append(ind)
+    #     image_index = np.array(image_index)
+    #     label_list = np.array(label_list)
+    # image_index = image_index[selected_list]
+    # return image_index, label_list
 
 
 def return_classlist(image_list):
@@ -37,15 +53,13 @@ def return_classlist(image_list):
 
 
 class Imagelists_VISDA(object):
-    def __init__(self, image_list, root="./data/multi/",
-                 transform=None, target_transform=None, test=False):
+    def __init__(self, image_list, transform=None, target_transform=None, test=False):
         imgs, labels = make_dataset_fromlist(image_list)
         self.imgs = imgs
         self.labels = labels
         self.transform = transform
         self.target_transform = target_transform
         self.loader = pil_loader
-        self.root = root
         self.test = test
 
     def __getitem__(self, index):
@@ -56,7 +70,7 @@ class Imagelists_VISDA(object):
             tuple: (image, target) where target is
             class_index of the target class.
         """
-        path = os.path.join(self.root, self.imgs[index])
+        path = self.imgs[index]
         target = self.labels[index]
         img = self.loader(path)
         if self.transform is not None:
