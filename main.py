@@ -245,15 +245,15 @@ def train():
                 print('saving model')
                 torch.save(G.state_dict(),
                            os.path.join(args.checkpath,
-                                        "G_iter_model_{}_{}_"
-                                        "to_{}_step_{}.pth.tar".
-                                        format(args.method, args.source,
+                                        "G_iter_model_{}_"
+                                        "target_{}_step_{}.pth.tar".
+                                        format(args.method,
                                                args.target, step)))
                 torch.save(F1.state_dict(),
                            os.path.join(args.checkpath,
-                                        "F1_iter_model_{}_{}_"
-                                        "to_{}_step_{}.pth.tar".
-                                        format(args.method, args.source,
+                                        "F1_iter_model_{}_"
+                                        "target_{}_step_{}.pth.tar".
+                                        format(args.method,
                                                args.target, step)))
 
 
