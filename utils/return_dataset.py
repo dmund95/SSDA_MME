@@ -18,7 +18,8 @@ class ResizeImage():
 
 def return_dataset(args):
     base_path = './data/txt/%s' % args.dataset
-    root = './data/%s/' % args.dataset
+    root = ' tkadapt/dataset/visDA/'
+    # root = './data/%s/' % args.dataset
     image_set_file_s = \
         os.path.join(base_path,
                      'labeled_source_images_' +
