@@ -140,9 +140,10 @@ if os.path.exists(args.checkpath) == False:
 def train():
     G.train()
     F1.train()
+    MM.train()
     optimizer_g = optim.SGD(params, momentum=0.9,
                             weight_decay=0.0005, nesterov=True)
-    optimizer_f = optim.SGD(list(F1.parameters()), lr=1.0, momentum=0.9,
+    optimizer_f = optim.SGD(list(F1.parameters()) + list(MM.parameters()), lr=1.0, momentum=0.9,
                             weight_decay=0.0005, nesterov=True)
 
     def zero_grad_all():
@@ -219,7 +220,7 @@ def train():
             source_features_to_align = MM(source_features)
             target_features_to_align = MM(target_features)
             target = gt_labels_s
-            da_loss = msda.msda_regulizer_soft(source_features_to_align, target_features_to_align, 5, get_one_hot_encoding(domains_labels_s, len(class_list)))
+            da_loss = msda.msda_regulizer_soft(source_features_to_align, target_features_to_align, 5, get_one_hot_encoding(domains_labels_s, len(args.target)-1))
             da_loss = da_loss * args.msda_wt
 
             out_predictions = F1(source_features)
@@ -266,6 +267,7 @@ def train():
         #                args.method)
         G.zero_grad()
         F1.zero_grad()
+        MM.zero_grad()
         zero_grad_all()
         if step % args.log_interval == 0:
             print(log_train)
@@ -274,6 +276,7 @@ def train():
             loss_val, acc_val = test(target_loader_val)
             G.train()
             F1.train()
+            MM.train()
             if acc_val >= best_acc:
                 best_acc = acc_val
                 best_acc_test = acc_test
@@ -292,6 +295,7 @@ def train():
                                                          acc_val))
             G.train()
             F1.train()
+            MM.train()
             if args.save_check:
                 print('saving model')
                 torch.save(G.state_dict(),
@@ -302,6 +306,11 @@ def train():
                 torch.save(F1.state_dict(),
                            os.path.join(args.checkpath,
                                         "F1_iter_model_{}_"
+                                        "target_{}_step_{}.pth.tar".
+                                        format(args.method, args.target, step)))
+                torch.save(MM.state_dict(),
+                           os.path.join(args.checkpath,
+                                        "MM_iter_model_{}_"
                                         "target_{}_step_{}.pth.tar".
                                         format(args.method, args.target, step)))
 
