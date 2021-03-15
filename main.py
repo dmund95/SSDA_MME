@@ -19,7 +19,7 @@ parser.add_argument('--steps', type=int, default=50000, metavar='N',
                     help='maximum number of iterations '
                          'to train (default: 50000)')
 parser.add_argument('--method', type=str, default='MME',
-                    choices=['source_only', 'source_target', 'ldada'])
+                    choices=['source_only', 'source_target', 'ldada', 'ldada_perfect_info'])
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.001)')
 parser.add_argument('--multi', type=float, default=0.1, metavar='MLT',
