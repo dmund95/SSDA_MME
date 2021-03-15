@@ -25,5 +25,5 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint',
                                                'model_best.pth.tar'))
 
 def get_one_hot_encoding(labels, num_classes):
-        y = torch.eye(num_classes).cuda()
-        return y[labels]
+    y = torch.eye(num_classes).cuda()
+    return y[labels]

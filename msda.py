@@ -78,6 +78,7 @@ def k_moment_soft(output_s, output_t, k, domain_prob):
     return moment_soft(output_s_k, domain_prob, output_t)
 
 def msda_regulizer_soft(output_s, output_t, belta_moment, domain_prob):
+    domain_prob += 1e-6
     # print('s1:{}, s2:{}, s3:{}, s4:{}'.format(output_s1.shape, output_s2.shape, output_s3.shape, output_t.shape))        
     reg_info = 0
     reg_info = k_moment_soft(output_s, output_t, 1, domain_prob)
