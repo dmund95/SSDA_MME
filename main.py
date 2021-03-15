@@ -9,7 +9,7 @@ import msda
 from torch.autograd import Variable
 from model.resnet import resnet34
 from model.basenet import AlexNetBase, VGGBase, Predictor, Predictor_deep, BnLayer
-from utils.utils import weights_init
+from utils.utils import weights_init, get_one_hot_encoding
 from utils.lr_schedule import inv_lr_scheduler
 from utils.return_dataset import return_dataset
 from utils.loss import entropy, adentropy
@@ -110,6 +110,7 @@ im_data_s = torch.FloatTensor(1)
 im_data_t = torch.FloatTensor(1)
 im_data_tu = torch.FloatTensor(1)
 gt_labels_s = torch.LongTensor(1)
+domains_labels_s = torch.LongTensor(1)
 gt_labels_t = torch.LongTensor(1)
 sample_labels_t = torch.LongTensor(1)
 sample_labels_s = torch.LongTensor(1)
@@ -118,6 +119,7 @@ im_data_s = im_data_s.cuda()
 im_data_t = im_data_t.cuda()
 im_data_tu = im_data_tu.cuda()
 gt_labels_s = gt_labels_s.cuda()
+domains_labels_s = domains_labels_s.cuda()
 gt_labels_t = gt_labels_t.cuda()
 sample_labels_t = sample_labels_t.cuda()
 sample_labels_s = sample_labels_s.cuda()
@@ -126,6 +128,7 @@ im_data_s = Variable(im_data_s)
 im_data_t = Variable(im_data_t)
 im_data_tu = Variable(im_data_tu)
 gt_labels_s = Variable(gt_labels_s)
+domains_labels_s = Variable(domains_labels_s)
 gt_labels_t = Variable(gt_labels_t)
 sample_labels_t = Variable(sample_labels_t)
 sample_labels_s = Variable(sample_labels_s)
@@ -173,6 +176,7 @@ def train():
         data_s = next(data_iter_s)
         im_data_s.data.resize_(data_s[0].size()).copy_(data_s[0])
         gt_labels_s.data.resize_(data_s[1].size()).copy_(data_s[1])
+        domains_labels_s.data.resize_(data_s[2].size()).copy_(data_s[2])
         im_data_t.data.resize_(data_t[0].size()).copy_(data_t[0])
         zero_grad_all()
         if args.method == 'source_only':
@@ -209,6 +213,29 @@ def train():
                 format(args.target,
                        step, lr, loss.data,
                        args.method)
+        elif args.method == 'ldada_perfect_info':
+            source_features = G(im_data_s)
+            target_features = G(im_data_t)
+            source_features_to_align = MM(source_features)
+            target_features_to_align = MM(target_features)
+            target = gt_labels_s
+            da_loss = msda.msda_regulizer_soft(source_features_to_align, target_features_to_align, 5, get_one_hot_encoding(domains_labels_s, len(class_list)))
+            da_loss = da_loss * args.msda_wt
+
+            out_predictions = F1(source_features)
+            ce_loss = criterion(out_predictions, target)
+            loss = ce_loss + da_loss
+
+            loss.backward()
+            optimizer_g.step()
+            optimizer_f.step()
+            log_train = 'Target {} Train Ep: {} lr{} \t ' \
+                        'Total Loss: {:.6f} DA Loss: {:.6f} CE Loss: {:.6f} Method {}\n'.\
+                format(args.target,
+                       step, lr, loss.data, da_loss.data, ce_loss.data,
+                       args.method)
+
+
         elif args.method == 'ldada':
             raise ValueError('Method cannot be recognized.')
 

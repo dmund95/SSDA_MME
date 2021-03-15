@@ -60,7 +60,7 @@ def return_dataset(args):
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
     }
-    source_dataset = Imagelists_VISDA(image_set_file_s, transform=data_transforms['train'])
+    source_dataset = Imagelists_VISDA(image_set_file_s, transform=data_transforms['train'], get_source_domains=True)
     target_dataset = Imagelists_VISDA(image_set_file_t, transform=data_transforms['val'])
     target_dataset_val = Imagelists_VISDA(image_set_file_t_val, transform=data_transforms['val'])
     target_dataset_test = Imagelists_VISDA(image_set_file_unl, transform=data_transforms['test'])

@@ -23,3 +23,7 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint',
     if is_best:
         shutil.copyfile(filepath, os.path.join(checkpoint,
                                                'model_best.pth.tar'))
+
+def get_one_hot_encoding(self, labels, num_classes):
+        y = torch.eye(num_classes).cuda()
+        return y[labels]

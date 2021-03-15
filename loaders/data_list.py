@@ -13,7 +13,10 @@ def pil_loader(path):
 def make_dataset_fromlist(image_lists):
     images = []
     labels = []
+    domains = []
+    curr_domain = -1
     for image_list in image_lists:
+        curr_domain += 1
         with open(image_list) as f:
             label_list = []
             image_index = []
@@ -22,11 +25,13 @@ def make_dataset_fromlist(image_lists):
                 label = x.split(' ')[1].strip()
                 label_list.append(int(label))
                 image_index.append(img_path)
+                domains.append(curr_domain)
             images.extend(image_index)
             labels.extend(label_list)
     images = np.array(images)
     labels = np.array(labels)
-    return images, labels
+    domains = np.array(domains)
+    return images, labels, domains
     # with open(image_list) as f:
     #     image_index = [x.split(' ')[0] for x in f.readlines()]
     # with open(image_list) as f:
@@ -53,14 +58,16 @@ def return_classlist(image_list):
 
 
 class Imagelists_VISDA(object):
-    def __init__(self, image_list, transform=None, target_transform=None, test=False):
-        imgs, labels = make_dataset_fromlist(image_list)
+    def __init__(self, image_list, transform=None, target_transform=None, test=False, get_source_domains=False):
+        imgs, labels, domains = make_dataset_fromlist(image_list)
         self.imgs = imgs
         self.labels = labels
+        self.domains = domains
         self.transform = transform
         self.target_transform = target_transform
         self.loader = pil_loader
         self.test = test
+        self.get_source_domains = get_source_domains
 
     def __getitem__(self, index):
         """
@@ -73,13 +80,18 @@ class Imagelists_VISDA(object):
         path = self.imgs[index]
         target = self.labels[index]
         img = self.loader(path)
+        domain_idx = self.domains[index]
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
             target = self.target_transform(target)
         if not self.test:
-            return img, target
+            if self.get_source_domains:
+                return img, target, domain_idx
+            else:
+                return img, target
         else:
+            assert False
             return img, target, self.imgs[index]
 
     def __len__(self):
