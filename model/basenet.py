@@ -33,6 +33,13 @@ def l2_norm(input):
 
     return output
 
+class BnLayer(nn.Module):
+    def __init__(self, layer_dim):
+        super(BnLayer, self).__init__()
+        self.bn = nn.BatchNorm1d(layer_dim,affine=False)
+    
+    def forward(self, x):
+        return self.bn(x)
 
 class AlexNetBase(nn.Module):
     def __init__(self, pret=True):

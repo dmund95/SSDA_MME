@@ -8,7 +8,7 @@ import torch.optim as optim
 import msda
 from torch.autograd import Variable
 from model.resnet import resnet34
-from model.basenet import AlexNetBase, VGGBase, Predictor, Predictor_deep
+from model.basenet import AlexNetBase, VGGBase, Predictor, Predictor_deep, BnLayer
 from utils.utils import weights_init
 from utils.lr_schedule import inv_lr_scheduler
 from utils.return_dataset import return_dataset
@@ -76,11 +76,9 @@ if args.net == 'resnet34':
 elif args.net == "alexnet":
     G = AlexNetBase()
     inc = 4096
-    raise ValueError('Model cannot be recognized.')
 elif args.net == "vgg":
     G = VGGBase()
     inc = 4096
-    raise ValueError('Model cannot be recognized.')
 else:
     raise ValueError('Model cannot be recognized.')
 
@@ -100,6 +98,8 @@ if "resnet" in args.net:
 else:
     F1 = Predictor(num_class=len(class_list), inc=inc,
                    temp=args.T)
+MM = BnLayer(inc)
+
 weights_init(F1)
 lr = args.lr
 G.cuda()
@@ -189,8 +189,10 @@ def train():
                        step, lr, loss.data,
                        args.method)
         elif args.method == 'source_target':
-            source_features, source_features_to_align = G(im_data_s)
-            _, target_features_to_align = G(im_data_t)
+            source_features = G(im_data_s)
+            target_features = G(im_data_t)
+            source_features_to_align = MM(source_features)
+            target_features_to_align = MM(target_features)
             target = gt_labels_s
             da_loss = msda.msda_regulizer_single(source_features_to_align, target_features_to_align, 5)
             da_loss = da_loss * args.msda_wt
