@@ -3,6 +3,9 @@ import torch
 from torchvision import transforms
 from loaders.data_list import Imagelists_VISDA, return_classlist
 from utils import SubsetClassRandomSampler
+import random
+from torch.utils.data.sampler import Sampler
+import itertools
 
 class ResizeImage():
     def __init__(self, size):
@@ -15,6 +18,44 @@ class ResizeImage():
         th, tw = self.size
         return img.resize((th, tw))
 
+def chunk(indices, chunk_size):
+    return torch.split(torch.tensor(indices), chunk_size)
+
+class SubsetClassRandomSampler(Sampler):
+    def __init__(self, labels, batch_size, num_classes_per_batch, num_classes):
+        assert batch_size%num_classes_per_batch==0
+        self.num_classes = num_classes
+        self.labels = labels[:]
+        self.batch_size = batch_size
+        self.num_classes_per_batch = num_classes_per_batch
+        label_map = {}
+        for i in range(num_classes):
+            label_map[i] = []
+        for idx, label in enumerate(labels):
+            label_map[label].append(idx)
+        self.label_map = label_map
+        self.total_batches = len(labels)*num_classes_per_batch//batch_size
+        self.num_samples_per_class_per_batch = batch_size//num_classes
+
+    def __iter__(self):
+        class_samples = {}
+        for i in range(self.num_classes):
+            class_samples[i] = random.choices(self.label_map[i],
+                                             k=self.num_samples_per_class_per_batch*self.total_batches)
+        all_combos = list(itertools.combinations(list(range(self.num_classes)),self.num_classes_per_batch))
+        sampled_combos = random.choices(all_combos, k=self.total_batches)
+        batches = []
+        for batch_idx, label_group in enumerate(sampled_combos):
+            cur_batch = []
+            for label in label_group:
+                cur_batch.extend(class_samples[label][batch_idx*(self.num_samples_per_class_per_batch)
+                                             :(batch_idx+1)*self.num_samples_per_class_per_batch])
+            batches.append(cur_batch)
+        random.shuffle(batches)
+        return iter(batches)
+
+    def __len__(self):
+        return self.total_batches
 
 def return_dataset(args):
     base_path = '/vulcan-pvc1/data/domain_net/'
@@ -74,8 +115,7 @@ def return_dataset(args):
     
     sampler = SubsetClassRandomSampler(source_dataset.labels, bs, args.num_classes_per_batch, len(class_list))
 
-    source_loader = torch.utils.data.DataLoader(source_dataset, batch_size=bs, batch_sampler=sampler,
-                                                num_workers=3, drop_last=True)
+    source_loader = torch.utils.data.DataLoader(source_dataset, batch_sampler=sampler, num_workers=3)
     target_loader = \
         torch.utils.data.DataLoader(target_dataset,
                                     batch_size=min(bs, len(target_dataset)),
