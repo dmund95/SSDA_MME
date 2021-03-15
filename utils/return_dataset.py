@@ -2,7 +2,7 @@ import os
 import torch
 from torchvision import transforms
 from loaders.data_list import Imagelists_VISDA, return_classlist
-
+from utils import SubsetClassRandomSampler
 
 class ResizeImage():
     def __init__(self, size):
@@ -71,7 +71,10 @@ def return_dataset(args):
         bs = 32
     else:
         bs = 24
-    source_loader = torch.utils.data.DataLoader(source_dataset, batch_size=bs,
+    
+    sampler = SubsetClassRandomSampler(source_dataset.labels,bs,args.num_classes_per_batch)
+
+    source_loader = torch.utils.data.DataLoader(source_dataset, batch_size=bs, batch_sampler=sampler,
                                                 num_workers=3, shuffle=True,
                                                 drop_last=True)
     target_loader = \
