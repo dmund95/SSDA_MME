@@ -104,6 +104,7 @@ weights_init(F1)
 lr = args.lr
 G.cuda()
 F1.cuda()
+MM.cuda()
 
 im_data_s = torch.FloatTensor(1)
 im_data_t = torch.FloatTensor(1)
