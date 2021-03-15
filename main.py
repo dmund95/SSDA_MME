@@ -76,9 +76,11 @@ if args.net == 'resnet34':
 elif args.net == "alexnet":
     G = AlexNetBase()
     inc = 4096
+    raise ValueError('Model cannot be recognized.')
 elif args.net == "vgg":
     G = VGGBase()
     inc = 4096
+    raise ValueError('Model cannot be recognized.')
 else:
     raise ValueError('Model cannot be recognized.')
 
@@ -187,10 +189,10 @@ def train():
                        step, lr, loss.data,
                        args.method)
         elif args.method == 'source_target':
-            source_features = G(im_data_s)
-            target_features = G(im_data_t)
+            source_features, source_features_to_align = G(im_data_s)
+            _, target_features_to_align = G(im_data_t)
             target = gt_labels_s
-            da_loss = msda.msda_regulizer_single(source_features, target_features, 5)
+            da_loss = msda.msda_regulizer_single(source_features_to_align, target_features_to_align, 5)
             da_loss = da_loss * args.msda_wt
 
             out_predictions = F1(source_features)

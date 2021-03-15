@@ -157,6 +157,8 @@ class ResNet(nn.Module):
         self.avgpool = nn.AvgPool2d(7)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
+        self.bn = nn.BatchNorm1d(512,affine=False)
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -193,7 +195,8 @@ class ResNet(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        return x
+        x_bn = self.bn(x)
+        return x, x_bn
 
 
 def resnet18(pretrained=True):
