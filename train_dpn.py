@@ -35,6 +35,8 @@ parser.add_argument('--checkpath', type=str, default='./save_model_ssda',
                     help='dir to save checkpoint')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
+parser.add_argument('--num_classes_per_batch', type=int, default=2,
+                    help='num classes in a batch after sampling')
 parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging '
                          'training status')
@@ -55,8 +57,8 @@ parser.add_argument('--early', action='store_false', default=True,
                     help='early stopping on validation or not')
 
 args = parser.parse_args()
-print('Dataset %s Target %s Labeled num perclass %s Network %s' %
-      (args.dataset, args.target, args.num, args.net))
+print('Dataset %s Target %s Network %s' %
+      (args.dataset, args.target, args.net))
 source_loader, target_loader, target_loader_val, \
     target_loader_test, class_list = return_dataset(args)
 use_gpu = torch.cuda.is_available()

@@ -72,11 +72,10 @@ def return_dataset(args):
     else:
         bs = 24
     
-    sampler = SubsetClassRandomSampler(source_dataset.labels,bs,args.num_classes_per_batch)
+    sampler = SubsetClassRandomSampler(source_dataset.labels, bs, args.num_classes_per_batch, len(class_list))
 
     source_loader = torch.utils.data.DataLoader(source_dataset, batch_size=bs, batch_sampler=sampler,
-                                                num_workers=3, shuffle=True,
-                                                drop_last=True)
+                                                num_workers=3, drop_last=True)
     target_loader = \
         torch.utils.data.DataLoader(target_dataset,
                                     batch_size=min(bs, len(target_dataset)),
