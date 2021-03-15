@@ -47,6 +47,7 @@ parser.add_argument('--net', type=str, default='alexnet',
                     help='which network to use')
 parser.add_argument('--target', type=str, default='ipqrsc',
                     help='last domain is the target domain')
+parser.add_argument('--method', type=str, default='clustering')
 parser.add_argument('--dataset', type=str, default='multi',
                     choices=['multi', 'office', 'office_home'],
                     help='the name of dataset')
@@ -66,7 +67,7 @@ record_dir = 'record/%s/%s' % (args.dataset, args.method)
 if not os.path.exists(record_dir):
     os.makedirs(record_dir)
 record_file = os.path.join(record_dir,
-                           '%s_net_%s_target_%s_clustering' %
+                           '%s_net_%s_target_%s' %
                            (args.method, args.net, args.target))
 
 torch.cuda.manual_seed(args.seed)
